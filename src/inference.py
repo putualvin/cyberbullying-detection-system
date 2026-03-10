@@ -1,23 +1,28 @@
 import joblib
 from scipy.sparse import hstack
+import numpy as np
 
-# Muat model dan vectorizer (Lakukan di luar fungsi agar tidak di-load berulang kali)
-model = joblib.load('models/cyberbullying_model.joblib')
-word_vec = joblib.load('models/word_vectorizer.joblib')
-char_vec = joblib.load('models/char_vectorizer.joblib')
+# 1. Muat file "paket lengkap" milikmu
+loaded_dict = joblib.load('models/cyberbullying_model.joblib')
+
+# 2. Ekstrak ketiga komponen langsung dari dalam kamus menggunakan nama kunci yang benar
+model = loaded_dict['model']
+word_vec = loaded_dict['word_vectorizer']
+char_vec = loaded_dict['char_vectorizer']
 
 def predict_cyberbullying(clean_text):
-    # 1. Ubah teks bersih jadi angka (HANYA gunakan .transform, BUKAN .fit_transform)
+    # Transformasi teks menjadi angka (Word + Char)
     X_word = word_vec.transform([clean_text])
     X_char = char_vec.transform([clean_text])
     
-    # 2. Gabungkan fitur (sesuai cara kamu melatihnya dulu)
+    # Gabungkan fitur
     X_combined = hstack([X_word, X_char])
     
-    # 3. Prediksi dan ambil probabilitasnya
+    # Prediksi
     pred_label = model.predict(X_combined)[0]
     
-    # Jika menggunakan LinearSVC, kita gunakan decision_function sebagai pseudo-probabilitas
-    decision = model.decision_function(X_combined) 
+    # Hitung pseudo-confidence menggunakan decision_function dari LinearSVC
+    decision = model.decision_function(X_combined)
+    confidence = float(np.max(decision)) if len(decision.shape) > 0 else 0.0
     
-    return pred_label, decision
+    return pred_label, confidence
